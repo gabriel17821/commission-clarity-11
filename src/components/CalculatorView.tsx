@@ -354,12 +354,39 @@ export const CalculatorView = ({
         )}
       </div>
 
-      {/* Actions - When no result yet */}
+      {/* Welcome State - When no result yet */}
       {!hasResult && (
-        <div className="max-w-xl mx-auto mt-4">
-          <p className="text-center text-muted-foreground text-sm">
-            Ingresa el total de la factura para calcular tu comisión
-          </p>
+        <div className="max-w-xl mx-auto mt-6 space-y-4">
+          <div className="text-center">
+            <p className="text-muted-foreground text-sm mb-4">
+              Ingresa el total de la factura para calcular tu comisión
+            </p>
+          </div>
+          
+          {/* Quick Tips */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-4 rounded-xl bg-muted/50 border border-border hover-lift">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Calculator className="h-4 w-4 text-primary" />
+              </div>
+              <h4 className="text-sm font-medium text-foreground mb-1">Cálculo automático</h4>
+              <p className="text-xs text-muted-foreground">Las comisiones se calculan al instante según tus productos</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/50 border border-border hover-lift">
+              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+                <DollarSign className="h-4 w-4 text-success" />
+              </div>
+              <h4 className="text-sm font-medium text-foreground mb-1">Guarda tu historial</h4>
+              <p className="text-xs text-muted-foreground">Mantén un registro de todas tus facturas y comisiones</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/50 border border-border hover-lift">
+              <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center mb-2">
+                <Package className="h-4 w-4 text-accent" />
+              </div>
+              <h4 className="text-sm font-medium text-foreground mb-1">Productos personalizados</h4>
+              <p className="text-xs text-muted-foreground">Agrega productos con diferentes porcentajes</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
