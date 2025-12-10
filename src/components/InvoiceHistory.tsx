@@ -1,13 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, FileSpreadsheet, Calendar, Receipt, Hash, TrendingUp, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
+import { ChevronDown, Calendar, Receipt, Hash, TrendingUp, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
 import { Invoice } from '@/hooks/useInvoices';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
@@ -80,32 +78,6 @@ export const InvoiceHistory = ({ invoices, loading, onDelete }: InvoiceHistoryPr
 
   const salesChange = previousPeriodStats ? getChangePercent(totalStats.totalAmount, previousPeriodStats.totalAmount) : null;
   const commissionChange = previousPeriodStats ? getChangePercent(totalStats.totalCommission, previousPeriodStats.totalCommission) : null;
-
-  const exportToExcel = () => {
-    const data = filteredInvoices.map(inv => ({
-      'NCF': inv.ncf,
-      'Fecha Factura': format(new Date(inv.invoice_date || inv.created_at), 'dd/MM/yyyy', { locale: es }),
-      'Total Factura': inv.total_amount,
-      'Resto': inv.rest_amount,
-      '% Resto': inv.rest_percentage,
-      'Comisión Resto': inv.rest_commission,
-      'Comisión Total': inv.total_commission,
-      ...(inv.products || []).reduce((acc, p, idx) => ({
-        ...acc,
-        [`Producto ${idx + 1}`]: p.product_name,
-        [`Monto ${idx + 1}`]: p.amount,
-        [`% ${idx + 1}`]: p.percentage,
-        [`Comisión ${idx + 1}`]: p.commission,
-      }), {}),
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Facturas');
-    
-    const monthLabel = selectedMonth === 'all' ? 'todas' : selectedMonth;
-    XLSX.writeFile(wb, `comisiones_${monthLabel}.xlsx`);
-  };
 
   if (loading) {
     return (
@@ -207,31 +179,24 @@ export const InvoiceHistory = ({ invoices, loading, onDelete }: InvoiceHistoryPr
 
         {/* Controls */}
         <Card className="p-4 bg-card border-border hover-lift">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-52 bg-background border-border">
-                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <SelectValue placeholder="Filtrar por mes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las facturas</SelectItem>
-                  {months.map(month => {
-                    const label = format(new Date(month + '-01'), 'MMMM yyyy', { locale: es });
-                    return (
-                      <SelectItem key={month} value={month}>
-                        {label.charAt(0).toUpperCase() + label.slice(1)}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-border hover-lift">
-              <FileSpreadsheet className="h-4 w-4" />
-              Exportar Excel
-            </Button>
+          <div className="flex items-center gap-3">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-52 bg-background border-border">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Filtrar por mes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las facturas</SelectItem>
+                {months.map(month => {
+                  const label = format(new Date(month + '-01'), 'MMMM yyyy', { locale: es });
+                  return (
+                    <SelectItem key={month} value={month}>
+                      {label.charAt(0).toUpperCase() + label.slice(1)}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
         </Card>
 

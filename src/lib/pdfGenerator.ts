@@ -98,9 +98,9 @@ export const generateBreakdownPdf = async (data: BreakdownData, selectedMonth: s
   
   let summaryText = '';
   if (specialProductCount > 0 && hasRest) {
-    summaryText = `${specialProductCount} producto${specialProductCount > 1 ? 's' : ''} especial${specialProductCount > 1 ? 'es' : ''} + Resto (${restPercentage}%)`;
+    summaryText = `${specialProductCount} producto(s) con comisiones variables + Resto (${restPercentage}%)`;
   } else if (specialProductCount > 0) {
-    summaryText = `${specialProductCount} producto${specialProductCount > 1 ? 's' : ''} especial${specialProductCount > 1 ? 'es' : ''}`;
+    summaryText = `${specialProductCount} producto(s) con comisiones variables`;
   } else if (hasRest) {
     summaryText = `Resto de productos (${restPercentage}%)`;
   }
