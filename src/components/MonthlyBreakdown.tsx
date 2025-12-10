@@ -117,11 +117,12 @@ export const MonthlyBreakdown = ({ invoices }: MonthlyBreakdownProps) => {
     return Object.values(products).sort((a, b) => b.totalAmount - a.totalAmount);
   }, [filteredInvoices]);
 
-  // Resto de productos (25%)
+  // Resto de productos (dynamic percentage)
   const restBreakdown = useMemo(() => {
     const entries: ProductEntry[] = [];
     let totalAmount = 0;
     let totalCommission = 0;
+    let percentage = 25; // Default fallback
     
     filteredInvoices.forEach(inv => {
       if (inv.rest_amount > 0) {
@@ -132,10 +133,14 @@ export const MonthlyBreakdown = ({ invoices }: MonthlyBreakdownProps) => {
         });
         totalAmount += Number(inv.rest_amount);
         totalCommission += Number(inv.rest_commission);
+        // Get percentage from first invoice with rest (they should all be the same)
+        if (inv.rest_percentage) {
+          percentage = Number(inv.rest_percentage);
+        }
       }
     });
     
-    return { entries, totalAmount, totalCommission };
+    return { entries, totalAmount, totalCommission, percentage };
   }, [filteredInvoices]);
 
   const grandTotalCommission = useMemo(() => {
@@ -335,7 +340,7 @@ export const MonthlyBreakdown = ({ invoices }: MonthlyBreakdownProps) => {
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-lg text-foreground">Resto de Productos</h3>
                     <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm font-bold">
-                      25%
+                      {restBreakdown.percentage}%
                     </span>
                   </div>
                 </div>
@@ -378,7 +383,7 @@ export const MonthlyBreakdown = ({ invoices }: MonthlyBreakdownProps) => {
                   <div className="p-4 rounded-xl bg-success/10 border border-success/20">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-success font-medium">
-                        Comisión (25%)
+                        Comisión ({restBreakdown.percentage}%)
                       </span>
                       <span className="font-bold text-2xl text-success">
                         ${formatCurrency(restBreakdown.totalCommission)}
@@ -408,7 +413,7 @@ export const MonthlyBreakdown = ({ invoices }: MonthlyBreakdownProps) => {
                 ))}
                 {restBreakdown.totalAmount > 0 && (
                   <div className="px-5 py-3 rounded-xl bg-muted/50 border border-border/50">
-                    <p className="text-xs text-muted-foreground font-medium mb-1">Resto (25%)</p>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Resto ({restBreakdown.percentage}%)</p>
                     <p className="font-bold text-lg text-foreground">${formatCurrency(restBreakdown.totalCommission)}</p>
                   </div>
                 )}

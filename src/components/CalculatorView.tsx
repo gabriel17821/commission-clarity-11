@@ -172,7 +172,7 @@ export const CalculatorView = ({
                   <AddProductDialog onAdd={onAddProduct} />
                 </div>
                 
-                {/* Search Input */}
+                {/* Search Input - Enhanced autocomplete */}
                 <div className="relative mb-3">
                   <input
                     type="text"
@@ -183,33 +183,55 @@ export const CalculatorView = ({
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Buscar producto..."
+                    placeholder="Buscar o seleccionar producto..."
                     className="w-full h-10 px-4 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                   />
                   
-                  {/* Suggestions Dropdown */}
-                  {showSuggestions && searchTerm && filteredProducts.length > 0 && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {filteredProducts.map((product) => (
-                        <button
-                          key={product.id}
-                          onClick={() => {
-                            setSearchTerm('');
-                            setShowSuggestions(false);
-                            const input = document.getElementById(`product-input-${product.id}`);
-                            input?.focus();
-                          }}
-                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
-                        >
-                          <span 
-                            className="h-6 w-6 rounded flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0"
-                            style={{ backgroundColor: product.color }}
+                  {/* Suggestions Dropdown - Shows on focus even without typing */}
+                  {showSuggestions && (searchTerm ? filteredProducts : products).length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                      {(searchTerm ? filteredProducts : products.slice(0, 8)).map((product) => {
+                        const hasAmount = (productAmounts[product.id] || 0) > 0;
+                        return (
+                          <button
+                            key={product.id}
+                            onClick={() => {
+                              setSearchTerm('');
+                              setShowSuggestions(false);
+                              // Scroll to product and focus input
+                              setTimeout(() => {
+                                const input = document.getElementById(`product-input-${product.id}`);
+                                const container = input?.closest('.space-y-2');
+                                if (input && container) {
+                                  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  input.focus();
+                                }
+                              }, 50);
+                            }}
+                            className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left ${
+                              hasAmount ? 'bg-success/5' : ''
+                            }`}
                           >
-                            {product.percentage}%
-                          </span>
-                          <span className="text-sm font-medium text-foreground">{product.name}</span>
-                        </button>
-                      ))}
+                            <span 
+                              className="h-7 w-7 rounded flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0"
+                              style={{ backgroundColor: product.color }}
+                            >
+                              {product.percentage}%
+                            </span>
+                            <span className="text-sm font-medium text-foreground flex-1">{product.name}</span>
+                            {hasAmount && (
+                              <span className="text-xs text-success font-medium">
+                                ${formatNumber(productAmounts[product.id])}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {!searchTerm && products.length > 8 && (
+                        <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border">
+                          Escribe para buscar entre {products.length} productos
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

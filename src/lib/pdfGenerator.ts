@@ -24,6 +24,7 @@ interface BreakdownData {
   month: string;
   products: ProductBreakdown[];
   rest: {
+    percentage: number;
     entries: ProductEntry[];
     totalAmount: number;
     totalCommission: number;
@@ -90,13 +91,26 @@ export const generateBreakdownPdf = async (data: BreakdownData, selectedMonth: s
   doc.setFontSize(9);
   doc.text('RESUMEN', margin + 5, yPos + 2);
   
-  const productCount = data.products.length + (data.rest.totalAmount > 0 ? 1 : 0);
+  // Build dynamic summary text
+  const specialProductCount = data.products.length;
+  const hasRest = data.rest.totalAmount > 0;
+  const restPercentage = data.rest.percentage || 25;
+  
+  let summaryText = '';
+  if (specialProductCount > 0 && hasRest) {
+    summaryText = `${specialProductCount} producto${specialProductCount > 1 ? 's' : ''} especial${specialProductCount > 1 ? 'es' : ''} + Resto (${restPercentage}%)`;
+  } else if (specialProductCount > 0) {
+    summaryText = `${specialProductCount} producto${specialProductCount > 1 ? 's' : ''} especial${specialProductCount > 1 ? 'es' : ''}`;
+  } else if (hasRest) {
+    summaryText = `Resto de productos (${restPercentage}%)`;
+  }
+  
   const invoiceCount = data.products.reduce((sum, p) => sum + p.entries.length, 0) + data.rest.entries.length;
   
   doc.setTextColor(colors.darkGrey);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${productCount} Productos  •  ${invoiceCount} Facturas`, margin + 5, yPos + 10);
+  doc.text(`${summaryText}  •  ${invoiceCount} Factura${invoiceCount !== 1 ? 's' : ''}`, margin + 5, yPos + 10);
   
   doc.setTextColor(colors.success);
   doc.setFontSize(12);
@@ -195,6 +209,8 @@ export const generateBreakdownPdf = async (data: BreakdownData, selectedMonth: s
       yPos = 20;
     }
 
+    const restPercentage = data.rest.percentage || 25;
+    
     doc.setFillColor(colors.veryLightGrey);
     doc.setDrawColor(colors.border);
     doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 9, 2, 2, 'FD');
@@ -202,7 +218,7 @@ export const generateBreakdownPdf = async (data: BreakdownData, selectedMonth: s
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Resto de Productos', margin + 4, yPos + 6);
-    doc.text('25%', pageWidth - margin - 4, yPos + 6, { align: 'right' });
+    doc.text(`${restPercentage}%`, pageWidth - margin - 4, yPos + 6, { align: 'right' });
     yPos += 12;
 
     const restTableData = data.rest.entries.map(entry => [
@@ -255,9 +271,10 @@ export const generateBreakdownPdf = async (data: BreakdownData, selectedMonth: s
     doc.text(`$${formatNumber(data.rest.totalAmount)}`, pageWidth - margin, yPos, { align: 'right' });
     yPos += 5;
 
+    const restPct = data.rest.percentage || 25;
     doc.setTextColor(colors.success);
     doc.setFont('helvetica', 'bold');
-    doc.text('Comisión (25%):', pageWidth - margin - 45, yPos);
+    doc.text(`Comisión (${restPct}%):`, pageWidth - margin - 45, yPos);
     doc.text(`$${formatNumber(data.rest.totalCommission)}`, pageWidth - margin, yPos, { align: 'right' });
     yPos += 12;
   }
