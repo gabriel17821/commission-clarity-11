@@ -8,6 +8,7 @@ import { CalculatorView } from "@/components/CalculatorView";
 import { InvoiceHistory } from "@/components/InvoiceHistory";
 import { Statistics } from "@/components/Statistics";
 import { MonthlyBreakdown } from "@/components/MonthlyBreakdown";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const { products, loading: productsLoading, addProduct, updateProduct, deleteProduct } = useProducts();
@@ -113,18 +114,21 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="mx-auto max-w-5xl px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Calculator className="h-5 w-5 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center">
+                <Calculator className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">
+                  Calculadora de Comisiones
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Tu herramienta para calcular ganancias
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                Calculadora de Comisiones
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Tu herramienta para calcular ganancias
-              </p>
-            </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>

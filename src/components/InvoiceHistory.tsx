@@ -2,13 +2,14 @@ import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, ChevronDown, ChevronUp, FileSpreadsheet, Calendar, Receipt, Hash, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
+import { ChevronDown, FileSpreadsheet, Calendar, Receipt, Hash, TrendingUp, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
 import { Invoice } from '@/hooks/useInvoices';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 interface InvoiceHistoryProps {
   invoices: Invoice[];
@@ -287,17 +288,11 @@ export const InvoiceHistory = ({ invoices, loading, onDelete }: InvoiceHistoryPr
                         <p className="font-bold text-success">${formatCurrency(invoice.total_commission)}</p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(invoice.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <DeleteConfirmDialog 
+                          onConfirm={() => onDelete(invoice.id)}
+                          title="¿Eliminar esta factura?"
+                          description={`La factura ${invoice.ncf} será eliminada permanentemente. Esta acción no se puede deshacer.`}
+                        />
                         <div className={`h-8 w-8 flex items-center justify-center transition-transform duration-200 ${
                           expandedInvoice === invoice.id ? 'rotate-180' : ''
                         }`}>
