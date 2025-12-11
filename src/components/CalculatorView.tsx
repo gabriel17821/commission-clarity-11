@@ -51,6 +51,8 @@ interface CalculatorViewProps {
   onUpdateRestPercentage: (value: number) => Promise<boolean>;
   onSaveInvoice: (ncf: string, invoiceDate: string) => Promise<any>;
   suggestedNcf?: number | null;
+  onUpdateProduct: (id: string, updates: Partial<Product>) => Promise<boolean>; // Busca esta línea
+  onDeleteProduct: (id: string) => Promise<boolean>;
 }
 
 export const CalculatorView = ({
@@ -66,6 +68,7 @@ export const CalculatorView = ({
   onReset,
   onAddProduct,
   onUpdateProduct,
+  onDeleteProduct,
   onAddToCalculation,
   onRemoveFromCalculation,
   onUpdateRestPercentage,
@@ -260,34 +263,52 @@ export const CalculatorView = ({
                   {showSuggestions && (
                     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
                       {availableProducts.map((product, index) => (
-                        <button
+                        <div
                           key={product.id}
-                          onClick={() => {
-                            onAddToCalculation(product.id);
-                            setSearchTerm('');
-                            setShowSuggestions(false);
-                            setHighlightedIndex(0);
-                            setTimeout(() => {
-                              const input = document.getElementById(`product-input-${product.id}`);
-                              if (input) {
-                                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                input.focus();
-                              }
-                            }, 50);
-                          }}
-                          className={`w-full px-4 py-3 flex items-center gap-3 transition-colors text-left ${
+                          className={`flex items-center w-full transition-colors ${
                             index === highlightedIndex ? 'bg-primary/10' : 'hover:bg-muted/50'
                           }`}
                         >
-                          <span 
-                            className="h-7 w-7 rounded flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0"
-                            style={{ backgroundColor: product.color }}
+                          {/* Botón IZQUIERDO: Seleccionar para calcular */}
+                          <button
+                            onClick={() => {
+                              onAddToCalculation(product.id);
+                              setSearchTerm('');
+                              setShowSuggestions(false);
+                              setHighlightedIndex(0);
+                              setTimeout(() => {
+                                const input = document.getElementById(`product-input-${product.id}`);
+                                if (input) {
+                                  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  input.focus();
+                                }
+                              }, 50);
+                            }}
+                            className="flex-1 px-4 py-3 flex items-center gap-3 text-left"
                           >
-                            {product.percentage}%
-                          </span>
-                          <span className="text-sm font-medium text-foreground flex-1">{product.name}</span>
-                          <span className="text-xs text-muted-foreground">Enter para agregar</span>
-                        </button>
+                            <span 
+                              className="h-7 w-7 rounded flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0"
+                              style={{ backgroundColor: product.color }}
+                            >
+                              {product.percentage}%
+                            </span>
+                            <span className="text-sm font-medium text-foreground flex-1">{product.name}</span>
+                          </button>
+
+                          {/* Botón DERECHO: Borrar de la base de datos */}
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation(); // Esto evita que se seleccione al borrar
+                              if (window.confirm(`¿Estás seguro de eliminar "${product.name}" permanentemente?`)) {
+                                await onDeleteProduct(product.id);
+                              }
+                            }}
+                            className="p-3 mr-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md transition-colors z-50"
+                            title="Eliminar producto permanentemente"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       ))}
                       
                       {/* Create new product option */}
