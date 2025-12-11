@@ -183,6 +183,7 @@ const Index = () => {
               onReset={handleReset}
               onAddProduct={addProduct}
               onUpdateProduct={updateProduct}
+              onDeleteProduct={deleteProduct}
               onAddToCalculation={handleAddProductToCalculation}
               onRemoveFromCalculation={handleRemoveProductFromCalculation}
               onUpdateRestPercentage={updateRestPercentage}
