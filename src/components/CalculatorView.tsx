@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RotateCcw, Calculator, DollarSign, Check, Package, Trash2 } from "lucide-react";
 import { SaveInvoiceDialog } from "@/components/SaveInvoiceDialog";
-import { AddProductDialog } from "@/components/AddProductDialog";
+
 import { EditProductDialog } from "@/components/EditProductDialog";
 import { EditRestPercentageDialog } from "@/components/EditRestPercentageDialog";
 import { BreakdownTable } from "@/components/BreakdownTable";
@@ -76,6 +76,9 @@ export const CalculatorView = ({
   const [productDisplayValues, setProductDisplayValues] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [newProductPercentage, setNewProductPercentage] = useState(15);
 
   const handleTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/,/g, '');
@@ -115,6 +118,64 @@ export const CalculatorView = ({
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Products available to add (not already selected)
+  const availableProducts = searchTerm 
+    ? filteredProducts.filter(p => !selectedProducts.some(sp => sp.id === p.id))
+    : products.filter(p => !selectedProducts.some(sp => sp.id === p.id)).slice(0, 10);
+
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const maxIndex = availableProducts.length > 0 ? availableProducts.length - 1 : 0;
+      setHighlightedIndex(prev => Math.min(prev + 1, maxIndex));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (availableProducts.length > 0 && highlightedIndex < availableProducts.length) {
+        // Add existing product
+        const product = availableProducts[highlightedIndex];
+        onAddToCalculation(product.id);
+        setSearchTerm('');
+        setShowSuggestions(false);
+        setHighlightedIndex(0);
+        setTimeout(() => {
+          const input = document.getElementById(`product-input-${product.id}`);
+          if (input) {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            input.focus();
+          }
+        }, 50);
+      } else if (searchTerm.trim() && availableProducts.length === 0) {
+        // Create new product
+        setIsCreatingProduct(true);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setIsCreatingProduct(false);
+    }
+  };
+
+  const handleCreateProduct = async () => {
+    if (!searchTerm.trim()) return;
+    const result = await onAddProduct(searchTerm.trim(), newProductPercentage);
+    if (result) {
+      onAddToCalculation(result.id);
+      setSearchTerm('');
+      setShowSuggestions(false);
+      setIsCreatingProduct(false);
+      setNewProductPercentage(15);
+      setTimeout(() => {
+        const input = document.getElementById(`product-input-${result.id}`);
+        if (input) {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          input.focus();
+        }
+      }, 50);
+    }
+  };
 
   const hasResult = totalInvoice > 0;
 
@@ -166,14 +227,11 @@ export const CalculatorView = ({
           {hasResult && (
             <div className="border-b border-border">
               <div className="px-5 py-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-md bg-accent/10 flex items-center justify-center">
-                      <Package className="h-4 w-4 text-accent" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-foreground">Productos con Comisión Variable</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-7 w-7 rounded-md bg-accent/10 flex items-center justify-center">
+                    <Package className="h-4 w-4 text-accent" />
                   </div>
-                  <AddProductDialog onAdd={onAddProduct} />
+                  <h3 className="text-sm font-semibold text-foreground">Productos con Comisión Variable</h3>
                 </div>
                 
                 {/* Search Input - Enhanced autocomplete */}
@@ -184,56 +242,107 @@ export const CalculatorView = ({
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setShowSuggestions(true);
+                      setHighlightedIndex(0);
+                      setIsCreatingProduct(false);
                     }}
+                    onKeyDown={handleKeyDown}
                     onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Buscar o seleccionar producto..."
+                    onBlur={() => setTimeout(() => {
+                      if (!isCreatingProduct) {
+                        setShowSuggestions(false);
+                      }
+                    }, 200)}
+                    placeholder="Buscar producto o escribir nuevo..."
                     className="w-full h-10 px-4 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                   />
                   
-                  {/* Suggestions Dropdown - Shows on focus even without typing */}
+                  {/* Suggestions Dropdown */}
                   {showSuggestions && (
                     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                      {(searchTerm ? filteredProducts : products.slice(0, 10)).map((product) => {
-                        const isSelected = selectedProducts.some(p => p.id === product.id);
-                        return (
-                          <button
-                            key={product.id}
-                            onClick={() => {
-                              onAddToCalculation(product.id);
-                              setSearchTerm('');
-                              setShowSuggestions(false);
-                              setTimeout(() => {
-                                const input = document.getElementById(`product-input-${product.id}`);
-                                if (input) {
-                                  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                  input.focus();
-                                }
-                              }, 50);
-                            }}
-                            disabled={isSelected}
-                            className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left ${
-                              isSelected ? 'opacity-50 cursor-not-allowed bg-muted/30' : ''
-                            }`}
+                      {availableProducts.map((product, index) => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            onAddToCalculation(product.id);
+                            setSearchTerm('');
+                            setShowSuggestions(false);
+                            setHighlightedIndex(0);
+                            setTimeout(() => {
+                              const input = document.getElementById(`product-input-${product.id}`);
+                              if (input) {
+                                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                input.focus();
+                              }
+                            }, 50);
+                          }}
+                          className={`w-full px-4 py-3 flex items-center gap-3 transition-colors text-left ${
+                            index === highlightedIndex ? 'bg-primary/10' : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <span 
+                            className="h-7 w-7 rounded flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0"
+                            style={{ backgroundColor: product.color }}
                           >
-                            <span 
-                              className="h-7 w-7 rounded flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0"
-                              style={{ backgroundColor: product.color }}
+                            {product.percentage}%
+                          </span>
+                          <span className="text-sm font-medium text-foreground flex-1">{product.name}</span>
+                          <span className="text-xs text-muted-foreground">Enter para agregar</span>
+                        </button>
+                      ))}
+                      
+                      {/* Create new product option */}
+                      {searchTerm.trim() && !filteredProducts.some(p => p.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                        <div className="border-t border-border">
+                          {isCreatingProduct ? (
+                            <div className="p-3 space-y-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground">Crear:</span>
+                                <span className="font-medium text-foreground">{searchTerm}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs text-muted-foreground">Comisión %:</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  value={newProductPercentage}
+                                  onChange={(e) => setNewProductPercentage(Number(e.target.value))}
+                                  className="w-16 h-8 px-2 text-sm text-center rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleCreateProduct();
+                                    }
+                                  }}
+                                />
+                                <Button size="sm" onClick={handleCreateProduct}>
+                                  Crear y Agregar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setIsCreatingProduct(true)}
+                              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left ${
+                                availableProducts.length === 0 ? 'bg-primary/10' : ''
+                              }`}
                             >
-                              {product.percentage}%
-                            </span>
-                            <span className="text-sm font-medium text-foreground flex-1">{product.name}</span>
-                            {isSelected && (
-                              <span className="text-xs text-success font-medium">
-                                Agregado
+                              <span className="h-7 w-7 rounded bg-success/20 flex items-center justify-center text-success shrink-0">
+                                +
                               </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                      {filteredProducts.length === 0 && searchTerm && (
-                        <div className="px-4 py-3 text-sm text-muted-foreground">
-                          No se encontraron productos
+                              <span className="text-sm font-medium text-foreground flex-1">
+                                Crear "{searchTerm}"
+                              </span>
+                              <span className="text-xs text-muted-foreground">Click o Enter</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      
+                      {availableProducts.length === 0 && !searchTerm && (
+                        <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                          Todos los productos ya están agregados
                         </div>
                       )}
                     </div>
