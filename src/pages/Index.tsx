@@ -17,23 +17,14 @@ const Index = () => {
 
   const [totalInvoice, setTotalInvoice] = useState(0);
   const [productAmounts, setProductAmounts] = useState<Record<string, number>>({});
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (products.length > 0) {
-      const initialAmounts: Record<string, number> = {};
-      products.forEach(p => {
-        if (!(p.id in productAmounts)) {
-          initialAmounts[p.id] = 0;
-        }
-      });
-      if (Object.keys(initialAmounts).length > 0) {
-        setProductAmounts(prev => ({ ...prev, ...initialAmounts }));
-      }
-    }
-  }, [products]);
+  const selectedProducts = useMemo(() => {
+    return products.filter(p => selectedProductIds.includes(p.id));
+  }, [products, selectedProductIds]);
 
   const calculations = useMemo(() => {
-    const breakdown = products.map((product) => ({
+    const breakdown = selectedProducts.map((product) => ({
       name: product.name,
       label: product.name,
       amount: productAmounts[product.id] || 0,
@@ -42,8 +33,8 @@ const Index = () => {
       color: product.color,
     }));
 
-    const specialProductsTotal = Object.values(productAmounts).reduce(
-      (sum, amount) => sum + amount,
+    const specialProductsTotal = selectedProductIds.reduce(
+      (sum, id) => sum + (productAmounts[id] || 0),
       0
     );
 
@@ -59,15 +50,27 @@ const Index = () => {
       restCommission,
       totalCommission,
     };
-  }, [totalInvoice, productAmounts, products, restPercentage]);
+  }, [totalInvoice, productAmounts, selectedProducts, selectedProductIds, restPercentage]);
 
   const handleReset = () => {
     setTotalInvoice(0);
-    const resetAmounts: Record<string, number> = {};
-    products.forEach(p => {
-      resetAmounts[p.id] = 0;
+    setProductAmounts({});
+    setSelectedProductIds([]);
+  };
+
+  const handleAddProductToCalculation = (productId: string) => {
+    if (!selectedProductIds.includes(productId)) {
+      setSelectedProductIds(prev => [...prev, productId]);
+    }
+  };
+
+  const handleRemoveProductFromCalculation = (productId: string) => {
+    setSelectedProductIds(prev => prev.filter(id => id !== productId));
+    setProductAmounts(prev => {
+      const newAmounts = { ...prev };
+      delete newAmounts[productId];
+      return newAmounts;
     });
-    setProductAmounts(resetAmounts);
   };
 
   const handleProductChange = (id: string, value: number) => {
@@ -169,6 +172,7 @@ const Index = () => {
           <TabsContent value="calculator" className="mt-8">
             <CalculatorView
               products={products}
+              selectedProducts={selectedProducts}
               productAmounts={productAmounts}
               totalInvoice={totalInvoice}
               setTotalInvoice={setTotalInvoice}
@@ -179,7 +183,8 @@ const Index = () => {
               onReset={handleReset}
               onAddProduct={addProduct}
               onUpdateProduct={updateProduct}
-              onDeleteProduct={deleteProduct}
+              onAddToCalculation={handleAddProductToCalculation}
+              onRemoveFromCalculation={handleRemoveProductFromCalculation}
               onUpdateRestPercentage={updateRestPercentage}
               onSaveInvoice={handleSaveInvoice}
               suggestedNcf={suggestedNcf}

@@ -132,6 +132,7 @@ export const ProductAutocomplete = ({
                     size="icon"
                     className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => onDeleteProduct(product.id)}
+                    title="Remover del cálculo"
                   >
                     <Trash2 className="h-3 w-3 text-destructive" />
                   </Button>
