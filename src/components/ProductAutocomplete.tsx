@@ -127,16 +127,14 @@ export const ProductAutocomplete = ({
                     product={product}
                     onUpdate={onUpdateProduct}
                   />
-                  {!product.is_default && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => onDeleteProduct(product.id)}
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onDeleteProduct(product.id)}
+                  >
+                    <Trash2 className="h-3 w-3 text-destructive" />
+                  </Button>
                 </div>
                 {amount > 0 && (
                   <span className="text-xs font-medium" style={{ color: product.color }}>
