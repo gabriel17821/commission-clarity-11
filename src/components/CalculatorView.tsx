@@ -35,6 +35,7 @@ interface Calculations {
 
 interface CalculatorViewProps {
   products: Product[];
+  selectedProducts: Product[];
   productAmounts: Record<string, number>;
   totalInvoice: number;
   setTotalInvoice: (value: number) => void;
@@ -45,7 +46,8 @@ interface CalculatorViewProps {
   onReset: () => void;
   onAddProduct: (name: string, percentage: number) => Promise<any>;
   onUpdateProduct: (id: string, updates: Partial<Product>) => Promise<boolean>;
-  onDeleteProduct: (id: string) => void;
+  onAddToCalculation: (id: string) => void;
+  onRemoveFromCalculation: (id: string) => void;
   onUpdateRestPercentage: (value: number) => Promise<boolean>;
   onSaveInvoice: (ncf: string, invoiceDate: string) => Promise<any>;
   suggestedNcf?: number | null;
@@ -53,6 +55,7 @@ interface CalculatorViewProps {
 
 export const CalculatorView = ({
   products,
+  selectedProducts,
   productAmounts,
   totalInvoice,
   setTotalInvoice,
@@ -63,7 +66,8 @@ export const CalculatorView = ({
   onReset,
   onAddProduct,
   onUpdateProduct,
-  onDeleteProduct,
+  onAddToCalculation,
+  onRemoveFromCalculation,
   onUpdateRestPercentage,
   onSaveInvoice,
   suggestedNcf,
@@ -188,28 +192,28 @@ export const CalculatorView = ({
                   />
                   
                   {/* Suggestions Dropdown - Shows on focus even without typing */}
-                  {showSuggestions && (searchTerm ? filteredProducts : products).length > 0 && (
+                  {showSuggestions && (
                     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                      {(searchTerm ? filteredProducts : products.slice(0, 8)).map((product) => {
-                        const hasAmount = (productAmounts[product.id] || 0) > 0;
+                      {(searchTerm ? filteredProducts : products.slice(0, 10)).map((product) => {
+                        const isSelected = selectedProducts.some(p => p.id === product.id);
                         return (
                           <button
                             key={product.id}
                             onClick={() => {
+                              onAddToCalculation(product.id);
                               setSearchTerm('');
                               setShowSuggestions(false);
-                              // Scroll to product and focus input
                               setTimeout(() => {
                                 const input = document.getElementById(`product-input-${product.id}`);
-                                const container = input?.closest('.space-y-2');
-                                if (input && container) {
+                                if (input) {
                                   input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                   input.focus();
                                 }
                               }, 50);
                             }}
+                            disabled={isSelected}
                             className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left ${
-                              hasAmount ? 'bg-success/5' : ''
+                              isSelected ? 'opacity-50 cursor-not-allowed bg-muted/30' : ''
                             }`}
                           >
                             <span 
@@ -219,17 +223,17 @@ export const CalculatorView = ({
                               {product.percentage}%
                             </span>
                             <span className="text-sm font-medium text-foreground flex-1">{product.name}</span>
-                            {hasAmount && (
+                            {isSelected && (
                               <span className="text-xs text-success font-medium">
-                                ${formatNumber(productAmounts[product.id])}
+                                Agregado
                               </span>
                             )}
                           </button>
                         );
                       })}
-                      {!searchTerm && products.length > 8 && (
-                        <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border">
-                          Escribe para buscar entre {products.length} productos
+                      {filteredProducts.length === 0 && searchTerm && (
+                        <div className="px-4 py-3 text-sm text-muted-foreground">
+                          No se encontraron productos
                         </div>
                       )}
                     </div>
@@ -244,63 +248,68 @@ export const CalculatorView = ({
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {(searchTerm ? filteredProducts : products).map((product, index) => {
-                      const amount = productAmounts[product.id] || 0;
-                      const commission = amount * (product.percentage / 100);
-                      
-                      return (
-                        <div 
-                          key={product.id}
-                          className="group flex items-center gap-3 p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-all duration-200 hover-lift"
-                          style={{ animationDelay: `${index * 30}ms` }}
-                        >
+                    {selectedProducts.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground text-sm">
+                        Busca y agrega productos con comisión variable
+                      </div>
+                    ) : (
+                      selectedProducts.map((product, index) => {
+                        const amount = productAmounts[product.id] || 0;
+                        const commission = amount * (product.percentage / 100);
+                        
+                        return (
                           <div 
-                            className="h-8 w-8 rounded flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0"
-                            style={{ backgroundColor: product.color }}
+                            key={product.id}
+                            className="group flex items-center gap-3 p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-all duration-200 hover-lift"
+                            style={{ animationDelay: `${index * 30}ms` }}
                           >
-                            {product.percentage}%
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-foreground truncate">{product.name}</span>
-                              <EditProductDialog 
-                                product={product}
-                                onUpdate={onUpdateProduct}
-                              />
-                              {!product.is_default && (
+                            <div 
+                              className="h-8 w-8 rounded flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0"
+                              style={{ backgroundColor: product.color }}
+                            >
+                              {product.percentage}%
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium text-foreground truncate">{product.name}</span>
+                                <EditProductDialog 
+                                  product={product}
+                                  onUpdate={onUpdateProduct}
+                                />
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => onDeleteProduct(product.id)}
+                                  onClick={() => onRemoveFromCalculation(product.id)}
+                                  title="Remover del cálculo"
                                 >
                                   <Trash2 className="h-3 w-3 text-destructive" />
                                 </Button>
+                              </div>
+                              {amount > 0 && (
+                                <span className="text-xs font-medium" style={{ color: product.color }}>
+                                  +${formatCurrency(commission)}
+                                </span>
                               )}
                             </div>
-                            {amount > 0 && (
-                              <span className="text-xs font-medium" style={{ color: product.color }}>
-                                +${formatCurrency(commission)}
-                              </span>
-                            )}
+                            
+                            <div className="relative w-24">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                              <input
+                                id={`product-input-${product.id}`}
+                                type="text"
+                                inputMode="numeric"
+                                value={productDisplayValues[product.id] || (amount > 0 ? formatNumber(amount) : '')}
+                                onChange={(e) => handleProductAmountChange(product.id, e.target.value)}
+                                className="w-full h-8 pl-5 pr-2 text-sm text-right font-medium rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary transition-all"
+                                placeholder="0"
+                              />
+                            </div>
                           </div>
-                          
-                          <div className="relative w-24">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                            <input
-                              id={`product-input-${product.id}`}
-                              type="text"
-                              inputMode="numeric"
-                              value={productDisplayValues[product.id] || (amount > 0 ? formatNumber(amount) : '')}
-                              onChange={(e) => handleProductAmountChange(product.id, e.target.value)}
-                              className="w-full h-8 pl-5 pr-2 text-sm text-right font-medium rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary transition-all"
-                              placeholder="0"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 )}
                 
